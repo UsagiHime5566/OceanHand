@@ -21,19 +21,19 @@
 
             struct appdata
             {
-                float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
+                fixed4 vertex : POSITION;
+                fixed2 uv : TEXCOORD0;
             };
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
+                fixed2 uv : TEXCOORD0;
                 UNITY_FOG_COORDS(1)
-                float4 vertex : SV_POSITION;
+                fixed4 vertex : SV_POSITION;
             };
 
             sampler2D _MainTex;
-            float4 _MainTex_ST;
+            fixed4 _MainTex_ST;
 
             v2f vert (appdata v)
             {
@@ -74,48 +74,50 @@
             #define sat(x) clamp(x,0.,1.)
             #define SIN(x) sin(x)*.5+.5
 
-            static const float3 lf=float3(1., 0., 0.);
-            static const float3 up=float3(0., 1., 0.);
-            static const float3 fw=float3(0., 0., 1.);
+            #define mod(x, y) (x-y*floor(x/y))
+
+            static const fixed3 lf=fixed3(1., 0., 0.);
+            static const fixed3 up=fixed3(0., 1., 0.);
+            static const fixed3 fw=fixed3(0., 0., 1.);
 
             static const float halfpi = 1.570796326794896619;
             static const float pi = 3.141592653589793238;
             static const float twopi = 6.283185307179586;
 
 
-            static float3 accentColor1 = float3(1., .1, .5);
-            static float3 secondColor1 = float3(.1, .5, 1.);
+            static fixed3 accentColor1 = fixed3(1., .1, .5);
+            static fixed3 secondColor1 = fixed3(.1, .5, 1.);
 
-            static float3 accentColor2 = float3(1., .5, .1);
-            static float3 secondColor2 = float3(.1, .5, .6);
+            static fixed3 accentColor2 = fixed3(1., .5, .1);
+            static fixed3 secondColor2 = fixed3(.1, .5, .6);
 
-            float3 bg;	 	// global background color
-            float3 accent;	// color of the phosphorecence
+            fixed3 bg;	 	// global background color
+            fixed3 accent;	// color of the phosphorecence
 
             float N1( float x ) { return frac(sin(x)*5346.1764); }
             float N2(float x, float y) { return N1(x + y*23414.324); }
 
-            float N3(float3 p) {
+            float N3(fixed3 p) {
                 p  = frac( p*0.3183099+.1 );
                 p *= 17.0;
                 return frac( p.x*p.y*p.z*(p.x+p.y+p.z) );
             }
 
             struct ray {
-                float3 o;
-                float3 d;
+                fixed3 o;
+                fixed3 d;
             };
 
             struct camera {
-                float3 p;			// the position of the camera
-                float3 forward;	// the camera forward vector
-                float3 left;		// the camera left vector
-                float3 up;		// the camera up vector
+                fixed3 p;			// the position of the camera
+                fixed3 forward;	// the camera forward vector
+                fixed3 left;		// the camera left vector
+                fixed3 up;		// the camera up vector
                 
-                float3 center;	// the center of the screen, in world coords
-                float3 i;			// where the current ray intersects the screen, in world coords
+                fixed3 center;	// the center of the screen, in world coords
+                fixed3 i;			// where the current ray intersects the screen, in world coords
                 ray ray;		// the current ray: from cam pos, through current uv projected on screen
-                float3 lookAt;	// the lookat point
+                fixed3 lookAt;	// the lookat point
                 float zoom;		// the zoom factor
             };
 
@@ -123,22 +125,22 @@
                 // data type used to pass the various bits of information used to shade a de object
                 float d;	// final distance to field
                 float m; 	// material
-                float3 uv;
+                fixed3 uv;
                 float pump;
                 
-                float3 id;
-                float3 pos;		// the world-space coordinate of the fragment
+                fixed3 id;
+                fixed3 pos;		// the world-space coordinate of the fragment
             };
             
             struct rc {
                 // data type used to handle a repeated coordinate
-                float3 id;	// holds the floor'ed coordinate of each cell. Used to identify the cell.
-                float3 h;		// half of the size of the cell
-                float3 p;		// the repeated coordinate
-                //float3 c;		// the center of the cell, world coordinates
+                fixed3 id;	// holds the floor'ed coordinate of each cell. Used to identify the cell.
+                fixed3 h;		// half of the size of the cell
+                fixed3 p;		// the repeated coordinate
+                //fixed3 c;		// the center of the cell, world coordinates
             };
             
-            rc Repeat(float3 pos, float3 size) {
+            rc Repeat(fixed3 pos, fixed3 size) {
                 rc o;
                 o.h = size*.5;					
                 o.id = floor(pos/size);			// used to give a unique id to each cell
@@ -151,7 +153,7 @@
             camera cam;
 
 
-            void CameraSetup(float2 uv, float3 position, float3 lookAt, float zoom) {
+            void CameraSetup(fixed2 uv, fixed3 position, fixed3 lookAt, float zoom) {
                 
                 cam.p = position;
                 cam.lookAt = lookAt;
@@ -171,10 +173,10 @@
             // ============== Functions I borrowed ;)
 
             //  3 out, 1 in... DAVE HOSKINS
-            float3 N31(float p) {
-                float3 p3 = frac((p) * float3(.1031,.11369,.13787));
+            fixed3 N31(float p) {
+                fixed3 p3 = frac((p) * fixed3(.1031,.11369,.13787));
                 p3 += dot(p3, p3.yzx + 19.19);
-                return frac(float3((p3.x + p3.y)*p3.z, (p3.x+p3.z)*p3.y, (p3.y+p3.z)*p3.x));
+                return frac(fixed3((p3.x + p3.y)*p3.z, (p3.x+p3.z)*p3.y, (p3.y+p3.z)*p3.x));
             }
 
             // DE functions from IQ
@@ -190,16 +192,16 @@
                 return lerp( a, b, h ) + k*h*(1.0-h);
             }
 
-            float sdSphere( float3 p, float3 pos, float s ) { return (length(p-pos)-s); }
+            float sdSphere( fixed3 p, fixed3 pos, float s ) { return (length(p-pos)-s); }
 
             // From http://mercury.sexy/hg_sdf
-            float2 pModPolar(inout float2 p, float repetitions, float fix) {
+            fixed2 pModPolar(inout fixed2 p, float repetitions, float fix) {
                 float angle = twopi/repetitions;
                 float a = atan2(p.y, p.x) + angle/2.;
                 float r = length(p);
                 float c = floor(a/angle);
                 a = mod(a,angle) - (angle/2.)*fix;
-                p = float2(cos(a), sin(a))*r;
+                p = fixed2(cos(a), sin(a))*r;
 
                 return p;
             }
@@ -207,11 +209,11 @@
             // -------------------------
 
 
-            float Dist( float2 P,  float2 P0, float2 P1 ) {
+            float Dist( fixed2 P,  fixed2 P0, fixed2 P1 ) {
                 //2d point-line distance
                 
-                float2 v = P1 - P0;
-                float2 w = P - P0;
+                fixed2 v = P1 - P0;
+                fixed2 w = P - P0;
 
                 float c1 = dot(w, v);
                 float c2 = dot(v, v);
@@ -220,48 +222,48 @@
                 return length(P-P0);
                 
                 float b = c1 / c2;
-                float2 Pb = P0 + b*v;
+                fixed2 Pb = P0 + b*v;
                 return length(P-Pb);
             }
 
-            float3 ClosestPoint(float3 ro, float3 rd, float3 p) {
+            fixed3 ClosestPoint(fixed3 ro, fixed3 rd, fixed3 p) {
                 // returns the closest point on ray r to point p
                 return ro + max(0., dot(p-ro, rd))*rd;
             }
 
-            float2 RayRayTs(float3 ro1, float3 rd1, float3 ro2, float3 rd2) {
+            fixed2 RayRayTs(fixed3 ro1, fixed3 rd1, fixed3 ro2, fixed3 rd2) {
                 // returns the two t's for the closest point between two rays
                 // ro+rd*t1 = ro2+rd2*t2
                 
-                float3 dO = ro2-ro1;
-                float3 cD = cross(rd1, rd2);
+                fixed3 dO = ro2-ro1;
+                fixed3 cD = cross(rd1, rd2);
                 float v = dot(cD, cD);
                 
                 float t1 = dot(cross(dO, rd2), cD)/v;
                 float t2 = dot(cross(dO, rd1), cD)/v;
-                return float2(t1, t2);
+                return fixed2(t1, t2);
             }
 
-            float DistRaySegment(float3 ro, float3 rd, float3 p1, float3 p2) {
+            float DistRaySegment(fixed3 ro, fixed3 rd, fixed3 p1, fixed3 p2) {
                 // returns the distance from ray r to line segment p1-p2
-                float3 rd2 = p2-p1;
-                float2 t = RayRayTs(ro, rd, p1, rd2);
+                fixed3 rd2 = p2-p1;
+                fixed2 t = RayRayTs(ro, rd, p1, rd2);
                 
                 t.x = max(t.x, 0.);
                 t.y = clamp(t.y, 0., length(rd2));
                 
-                float3 rp = ro+rd*t.x;
-                float3 sp = p1+rd2*t.y;
+                fixed3 rp = ro+rd*t.x;
+                fixed3 sp = p1+rd2*t.y;
                 
                 return length(rp-sp);
             }
 
-            float2 sph(float3 ro, float3 rd, float3 pos, float radius) {
+            fixed2 sph(fixed3 ro, fixed3 rd, fixed3 pos, float radius) {
                 // does a ray sphere intersection
-                // returns a float2 with distance to both intersections
+                // returns a fixed2 with distance to both intersections
                 // if both a and b are MAX_DISTANCE then there is no intersection
                 
-                float3 oc = pos - ro;
+                fixed3 oc = pos - ro;
                 float l = dot(rd, oc);
                 float det = l*l - dot(oc, oc) + radius*radius;
                 if (det < 0.0) return (MAX_DISTANCE);
@@ -270,16 +272,16 @@
                 float a = l - d;
                 float b = l + d;
                 
-                return float2(a, b);
+                return fixed2(a, b);
             }
 
 
-            float3 background(float3 r) {
+            fixed3 background(fixed3 r) {
                 
                 float x = atan2(r.x, r.z);		// from -pi to pi	
                 float y = pi*0.5-acos(r.y);  		// from -1/2pi to 1/2pi		
                 
-                float3 col = bg*(1.+y);
+                fixed3 col = bg*(1.+y);
                 
                 float t = _Time.y;				// add god rays
                 
@@ -306,7 +308,7 @@
 
 
 
-            de map( float3 p, float3 id ) {
+            de map( fixed3 p, fixed3 id ) {
 
                 float t = _Time.y*2.;
                 
@@ -324,8 +326,8 @@
                 p.y -= (cos(x+cos(x))+sin(2.*x)*.2)*.6;
                 p.xz *= 1. + pump*.2;
                 
-                float d1 = sdSphere(p, float3(0., 0., 0.), r);
-                float d2 = sdSphere(p, float3(0., -.5, 0.), r);
+                float d1 = sdSphere(p, fixed3(0., 0., 0.), r);
+                float d2 = sdSphere(p, fixed3(0., -.5, 0.), r);
                 
                 o.d = smax(d1, -d2, .1);
                 o.m = 1.;
@@ -335,22 +337,22 @@
                     p.x += sway*N;	// add some sway to the tentacles
                     p.z += sway*(1.-N);
                     
-                    float3 mp = p;
+                    fixed3 mp = p;
                     mp.xz = pModPolar(mp.xz, 6., 0.);
                     
-                    float d3 = length(mp.xz-float2(.2, .1))-remap(.5, -3.5, .1, .01, mp.y);
+                    float d3 = length(mp.xz-fixed2(.2, .1))-remap(.5, -3.5, .1, .01, mp.y);
                     if(d3<o.d) o.m=2.;
                     d3 += (sin(mp.y*10.)+sin(mp.y*23.))*.03;
                     
-                    float d32 = length(mp.xz-float2(.2, .1))-remap(.5, -3.5, .1, .04, mp.y)*.5;
+                    float d32 = length(mp.xz-fixed2(.2, .1))-remap(.5, -3.5, .1, .04, mp.y)*.5;
                     d3 = min(d3, d32);
                     o.d = smin(o.d, d3, .5);
                     
                     if( p.y<.2) {
-                        float3 op = p;
+                        fixed3 op = p;
                         op.xz = pModPolar(op.xz, 13., 1.);
                         
-                        float d4 = length(op.xz-float2(.85, .0))-remap(.5, -3., .04, .0, op.y);
+                        float d4 = length(op.xz-fixed2(.85, .0))-remap(.5, -3., .04, .0, op.y);
                         if(d4<o.d) o.m=3.;
                         o.d = smin(o.d, d4, .15);
                     }
@@ -362,9 +364,9 @@
                 return o;
             }
 
-            float3 calcNormal( de o ) {
-                float3 eps = float3( 0.01, 0.0, 0.0 );
-                float3 nor = float3(
+            fixed3 calcNormal( de o ) {
+                fixed3 eps = fixed3( 0.01, 0.0, 0.0 );
+                fixed3 nor = fixed3(
                 map(o.pos+eps.xyy, o.id).d - map(o.pos-eps.xyy, o.id).d,
                 map(o.pos+eps.yxy, o.id).d - map(o.pos-eps.yxy, o.id).d,
                 map(o.pos+eps.yyx, o.id).d - map(o.pos-eps.yyx, o.id).d );
@@ -375,35 +377,37 @@
                 float d = 0.;
                 float dS = MAX_DISTANCE;
                 
-                float3 pos = float3(0., 0., 0.);
-                float3 n = (0.);
+                fixed3 pos = fixed3(0., 0., 0.);
+                fixed3 n = (0.);
                 de o, s;
+                UNITY_INITIALIZE_OUTPUT(de, o);
+                UNITY_INITIALIZE_OUTPUT(de, s);
                 
                 float dC = MAX_DISTANCE;
-                float3 p;
+                fixed3 p;
                 rc q;
                 float t = _Time.y;
-                float3 grid = float3(6., 30., 6.);
+                fixed3 grid = fixed3(6., 30., 6.);
                 
                 for(float i=0.; i<MAX_STEPS; i++) {
                     p = r.o + r.d*d;
                     
                     #ifdef SINGLE
-                        s = map(p, float3(0.));
+                        s = map(p, fixed3(0.));
                     #else
                         p.y -= t;  // make the move up
                         p.x += t;  // make cam fly forward
                         
                         q = Repeat(p, grid);
                         
-                        float3 rC = ((2.*step(0., r.d)-1.)*q.h-q.p)/r.d;	// ray to cell boundary
+                        fixed3 rC = ((2.*step(0., r.d)-1.)*q.h-q.p)/r.d;	// ray to cell boundary
                         dC = min(min(rC.x, rC.y), rC.z)+.01;		// distance to cell just past boundary
                         
                         float N = N3(q.id);
-                        q.p += (N31(N)-.5)*grid*float3(.5, .7, .5);
+                        q.p += (N31(N)-.5)*grid*fixed3(.5, .7, .5);
                         
                         if(Dist(q.p.xz, r.d.xz, (0.))<1.1)
-                        //if(DistRaySegment(q.p, r.d, float3(0., -6., 0.), float3(0., -3.3, 0)) <1.1) 
+                        //if(DistRaySegment(q.p, r.d, fixed3(0., -6., 0.), fixed3(0., -3.3, 0)) <1.1) 
                         s = map(q.p, q.id);
                         else
                         s.d = dC;
@@ -432,7 +436,7 @@
                 return o;
             }
 
-            float VolTex(float3 uv, float3 p, float scale, float pump) {
+            float VolTex(fixed3 uv, fixed3 p, float scale, float pump) {
                 // uv = the surface pos
                 // p = the volume shell pos
                 
@@ -441,7 +445,7 @@
                 float s2 = 5.*p.x/twopi;
                 float id = floor(s2);
                 s2 = frac(s2);
-                float2 ep = float2(s2-.5, p.y-.6);
+                fixed2 ep = fixed2(s2-.5, p.y-.6);
                 float ed = length(ep);
                 float e = B(.35, .45, .05, ed);
                 
@@ -456,8 +460,8 @@
                 return s+e*pump*2.;
             }
 
-            float4 JellyTex(float3 p) { 
-                float3 s = float3(atan2(p.x, p.z), length(p.xz), p.y);
+            fixed4 JellyTex(fixed3 p) { 
+                fixed3 s = fixed3(atan2(p.x, p.z), length(p.xz), p.y);
                 
                 float b = .75+sin(s.x*6.)*.25;
                 b = lerp(1., b, s.y*s.y);
@@ -469,25 +473,25 @@
                 return (b+b2);
             }
 
-            float3 render( float2 uv, ray camRay, float depth ) {
+            fixed3 render( fixed2 uv, ray camRay, float depth ) {
                 // outputs a color
                 
                 bg = background(cam.ray.d);
                 
-                float3 col = bg;
+                fixed3 col = bg;
                 de o = CastRay(camRay);
                 
                 float t = _Time.y;
-                float3 L = up;
+                fixed3 L = up;
                 
 
                 if(o.m>0.) {
-                    float3 n = calcNormal(o);
+                    fixed3 n = calcNormal(o);
                     float lambert = sat(dot(n, L));
-                    float3 R = reflect(camRay.d, n);
+                    fixed3 R = reflect(camRay.d, n);
                     float fresnel = sat(1.+dot(camRay.d, n));
                     float trans = (1.-fresnel)*.5;
-                    float3 ref = background(R);
+                    fixed3 ref = background(R);
                     float fade = 0.;
                     
                     if(o.m==1.) {	// hood color
@@ -495,27 +499,27 @@
                         for(float i=0.; i<VOLUME_STEPS; i++) {
                             float sd = sph(o.uv, camRay.d, (0.), .8+i*.015).x;
                             if(sd!=MAX_DISTANCE) {
-                                float2 intersect = o.uv.xz+camRay.d.xz*sd;
+                                fixed2 intersect = o.uv.xz+camRay.d.xz*sd;
 
-                                float3 uv = float3(atan2(intersect.x, intersect.y), length(intersect.xy), o.uv.z);
+                                fixed3 uv = fixed3(atan2(intersect.x, intersect.y), length(intersect.xy), o.uv.z);
                                 density += VolTex(o.uv, uv, 1.4+i*.03, o.pump);
                             }
                         }
-                        float4 volTex = float4(accent, density/VOLUME_STEPS); 
+                        fixed4 volTex = fixed4(accent, density/VOLUME_STEPS); 
                         
                         
-                        float3 dif = JellyTex(o.uv).rgb;
+                        fixed3 dif = JellyTex(o.uv).rgb;
                         dif *= max(.2, lambert);
 
                         col = lerp(col, volTex.rgb, volTex.a);
-                        col = lerp(col, float3(dif), .25);
+                        col = lerp(col, fixed3(dif), .25);
 
                         col += fresnel*ref*sat(dot(up, n));
 
                         //fade
                         fade = max(fade, S(.0, 1., fresnel));
                         } else if(o.m==2.) {						// inside tentacles
-                        float3 dif = accent;
+                        fixed3 dif = accent;
                         col = lerp(bg, dif, fresnel);
                         
                         col *= lerp(.6, 1., S(0., -1.5, o.uv.y));
@@ -527,7 +531,7 @@
                         
                         fade = fresnel;
                         } else if(o.m==3.) {						// outside tentacles
-                        float3 dif = accent;
+                        fixed3 dif = accent;
                         float d = S(100., 13., o.d);
                         col = lerp(bg, dif, pow(1.-fresnel, 5.)*d);
                     }
@@ -536,7 +540,7 @@
                     col = lerp(col, bg, fade);
                     
                     if(o.m==4.)
-                    col = float3(1., 0., 0.);
+                    col = fixed3(1., 0., 0.);
                 } 
                 else
                 col = bg;
@@ -548,15 +552,15 @@
             {
                 float t = _Time.y*.04;
                 
-                //float2 uv = (fragCoord.xy / iResolution.xy);
-                float2 uv = i.uv;
+                //fixed2 uv = (fragCoord.xy / iResolution.xy);
+                fixed2 uv = i.uv;
                 uv -= .5;
                 //uv.y *= iResolution.y/iResolution.x; 
                 
-                float2 m = 0;//iMouse.xy/iResolution.xy;
+                fixed2 m = 0;//iMouse.xy/iResolution.xy;
                 
                 if(m.x<0.05 || m.x>.95) {				// move cam automatically when mouse is not used
-                    m = float2(t*.25, SIN(t*pi)*.5+.5);
+                    m = fixed2(t*.25, SIN(t*pi)*.5+.5);
                 }
                 
                 accent = lerp(accentColor1, accentColor2, SIN(t*15.456));
@@ -565,7 +569,7 @@
                 float turn = (.1-m.x)*twopi;
                 float s = sin(turn);
                 float c = cos(turn);
-                float3x3 rotX = float3x3(c,  0., s, 0., 1., 0., s,  0., -c);
+                fixed3x3 rotX = fixed3x3(c,  0., s, 0., 1., 0., s,  0., -c);
                 
                 #ifdef SINGLE
                     float camDist = -10.;
@@ -573,19 +577,19 @@
                     float camDist = -.1;
                 #endif
                 
-                float3 lookAt = float3(0., -1., 0.);
+                fixed3 lookAt = fixed3(0., -1., 0.);
                 
-                float3 camPos = mul(rotX,float3(0., INVERTMOUSE*camDist*cos((m.y)*pi), camDist));
+                fixed3 camPos = mul(rotX,fixed3(0., INVERTMOUSE*camDist*cos((m.y)*pi), camDist));
                 
                 CameraSetup(uv, camPos+lookAt, lookAt, 1.);
                 
-                float3 col = render(uv, cam.ray, 0.);
+                fixed3 col = render(uv, cam.ray, 0.);
                 
                 col = pow(col, (lerp(1.5, 2.6, SIN(t+pi))));		// post-processing
                 float d = 1.-dot(uv, uv);		// vignette
                 col *= (d*d*d)+.1;
                 
-                float4 fragColor = float4(col, 1.);
+                fixed4 fragColor = fixed4(col, 1.);
             
                 return fragColor;
             }

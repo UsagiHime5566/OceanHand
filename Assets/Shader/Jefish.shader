@@ -69,6 +69,8 @@
             #define sat(x) clamp(x,0.,1.)
             #define SIN(x) sin(x)*.5+.5
 
+            #define mod(x, y) (x-y*floor(x/y))
+
             static const fixed3 lf=fixed3(1., 0., 0.);
             static const fixed3 up=fixed3(0., 1., 0.);
             static const fixed3 fw=fixed3(0., 0., 1.);
@@ -137,7 +139,7 @@
                 rc o;
                 o.h = size*.5;					
                 o.id = floor(pos/size);			// used to give a unique id to each cell
-                o.p = fmod(pos, size)-o.h;
+                o.p = mod(pos, size)-o.h;
                 //o.c = o.id*size+o.h;
                 
                 return o;
@@ -188,12 +190,12 @@
             float sdSphere( fixed3 p, fixed3 pos, float s ) { return (length(p-pos)-s); }
 
             // From http://mercury.sexy/hg_sdf
-            fixed2 pfmodPolar(inout fixed2 p, float repetitions, float fix) {
+            fixed2 pmodPolar(inout fixed2 p, float repetitions, float fix) {
                 float angle = twopi/repetitions;
                 float a = atan2(p.x, p.y) + angle/2.;
                 float r = length(p);
                 float c = floor(a/angle);
-                a = fmod(a,angle) - (angle/2.)*fix;
+                a = mod(a,angle) - (angle/2.)*fix;
                 p = fixed2(cos(a), sin(a))*r;
 
                 return p;
@@ -331,7 +333,7 @@
                     p.z += sway*(1.-N);
                     
                     fixed3 mp = p;
-                    mp.xz = pfmodPolar(mp.xz, 6., 0.);
+                    mp.xz = pmodPolar(mp.xz, 6., 0.);
                     
                     float d3 = length(mp.xz-fixed2(.2, .1))-remap(.5, -3.5, .1, .01, mp.y);
                     if(d3<o.d) o.m=2.;
@@ -343,7 +345,7 @@
                     
                     if( p.y<.2) {
                         fixed3 op = p;
-                        op.xz = pfmodPolar(op.xz, 13., 1.);
+                        op.xz = pmodPolar(op.xz, 13., 1.);
                         
                         float d4 = length(op.xz-fixed2(.85, .0))-remap(.5, -3., .04, .0, op.y);
                         if(d4<o.d) o.m=3.;
